@@ -1,0 +1,12 @@
+[package]
+name = "gfast"
+version = "0.1.0"
+authors = ["Ferruccio Barletta <ferruccio.barletta@gmail.com>"]
+description = "Git Fetch AWS Session Token"
+
+[dependencies]
+clap = "2.31.2"
+rusoto_core = "0.32.0"
+rusoto_sts = "0.32.0"
+quick-error = "1.2.2"
+rust-ini = "0.12.1"
