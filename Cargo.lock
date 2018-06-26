@@ -198,6 +198,17 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "fast"
+version = "0.1.0"
+dependencies = [
+ "clap 2.31.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quick-error 1.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rusoto_core 0.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rusoto_sts 0.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rust-ini 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "foreign-types"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -244,17 +255,6 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "typenum 1.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "gfast"
-version = "0.1.0"
-dependencies = [
- "clap 2.31.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "quick-error 1.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rusoto_core 0.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rusoto_sts 0.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rust-ini 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
