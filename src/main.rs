@@ -55,20 +55,20 @@ fn main() -> Result<()> {
             .about(env!("CARGO_PKG_DESCRIPTION"))
             .setting(AppSettings::ColoredHelp)
             .setting(AppSettings::UnifiedHelpMessage)
-            .arg(Arg::with_name("config")
-                .value_name("CONFIG")
-                .help("git config file")
+            .arg(Arg::with_name("credentials")
+                .value_name("CREDENTIALS")
+                .help("AWS credentials file")
                 .index(1)
                 .required(true))
             .arg(Arg::with_name("profile")
                 .value_name("PROFILE")
-                .help("git profile")
+                .help("AWS profile to update")
                 .index(2)
                 .default_value("git")
                 .required(false))
             .get_matches();
 
-    let config = app.value_of("config").unwrap_or("");
+    let credentials = app.value_of("credentials").unwrap_or("");
     let profile = Some(app.value_of("profile").unwrap_or(""));
 
     let sts = StsClient::simple(Region::default());
@@ -77,11 +77,11 @@ fn main() -> Result<()> {
     let rsp = sts.get_session_token(&req).sync()?;
 
     if let Some(cred) = rsp.credentials {
-        let mut conf = Ini::load_from_file(config)?;
+        let mut conf = Ini::load_from_file(credentials)?;
         conf.set_to(profile, "aws_access_key_id".to_owned(), cred.access_key_id);
         conf.set_to(profile, "aws_secret_access_key".to_owned(), cred.secret_access_key);
         conf.set_to(profile, "aws_session_token".to_owned(), cred.session_token);
-        conf.write_to_file(config)?;
+        conf.write_to_file(credentials)?;
         println!("session token expires: {}", cred.expiration);
     }
 
