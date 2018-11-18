@@ -5,19 +5,13 @@ extern crate rusoto_sts;
 extern crate ini;
 
 use clap::{App, Arg, AppSettings};
-use rusoto_core::{region::Region, TlsError, CredentialsError};
+use rusoto_core::{region::Region, CredentialsError};
 use rusoto_sts::{Sts, StsClient, GetSessionTokenRequest, GetSessionTokenError};
 use ini::Ini;
 
 quick_error! {
     #[derive(Debug)]
     pub enum Error {
-        TlsError(err: TlsError) {
-            from()
-            description(err.description())
-            display("tls error: {}", err)
-            cause(err)
-        }
         CredentialsError(err: CredentialsError) {
             from()
             description(err.description())
@@ -71,10 +65,10 @@ fn main() -> Result<()> {
     let credentials = app.value_of("credentials").unwrap_or("");
     let profile = Some(app.value_of("profile").unwrap_or(""));
 
-    let sts = StsClient::simple(Region::default());
+    let sts = StsClient::new(Region::default());
 
     let req = GetSessionTokenRequest { ..Default::default() };
-    let rsp = sts.get_session_token(&req).sync()?;
+    let rsp = sts.get_session_token(req).sync()?;
 
     if let Some(cred) = rsp.credentials {
         let mut conf = Ini::load_from_file(credentials)?;

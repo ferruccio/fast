@@ -5,8 +5,8 @@ authors = ["Ferruccio Barletta <ferruccio.barletta@gmail.com>"]
 description = "Fetch AWS Session Token"
 
 [dependencies]
-clap = "2.31.2"
-rusoto_core = "0.32.0"
-rusoto_sts = "0.32.0"
+clap = "2.32.0"
+rusoto_core = "0.35.0"
+rusoto_sts = "0.35.0"
 quick-error = "1.2.2"
-rust-ini = "0.12.1"
+rust-ini = "0.13.0"
