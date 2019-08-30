@@ -1,13 +1,14 @@
 extern crate clap;
 extern crate rusoto_core;
 extern crate rusoto_sts;
-#[macro_use] extern crate quick_error;
+#[macro_use]
+extern crate quick_error;
 extern crate ini;
 
-use clap::{App, Arg, AppSettings};
-use rusoto_core::{region::Region, CredentialsError};
-use rusoto_sts::{Sts, StsClient, GetSessionTokenRequest, GetSessionTokenError};
+use clap::{App, AppSettings, Arg};
 use ini::Ini;
+use rusoto_core::{region::Region, CredentialsError};
+use rusoto_sts::{GetSessionTokenError, GetSessionTokenRequest, Sts, StsClient};
 
 quick_error! {
     #[derive(Debug)]
@@ -42,38 +43,47 @@ quick_error! {
 type Result<T> = ::std::result::Result<T, Error>;
 
 fn main() -> Result<()> {
-    let app =
-        App::new(env!("CARGO_PKG_NAME"))
-            .version(env!("CARGO_PKG_VERSION"))
-            .author("Ferruccio Barletta")
-            .about(env!("CARGO_PKG_DESCRIPTION"))
-            .setting(AppSettings::ColoredHelp)
-            .setting(AppSettings::UnifiedHelpMessage)
-            .arg(Arg::with_name("credentials")
+    let app = App::new(env!("CARGO_PKG_NAME"))
+        .version(env!("CARGO_PKG_VERSION"))
+        .author("Ferruccio Barletta")
+        .about(env!("CARGO_PKG_DESCRIPTION"))
+        .setting(AppSettings::ColoredHelp)
+        .setting(AppSettings::UnifiedHelpMessage)
+        .arg(
+            Arg::with_name("credentials")
                 .value_name("CREDENTIALS")
                 .help("AWS credentials file")
                 .index(1)
-                .required(true))
-            .arg(Arg::with_name("profile")
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("profile")
                 .value_name("PROFILE")
                 .help("AWS profile to update")
                 .index(2)
-                .default_value("git")
-                .required(false))
-            .get_matches();
+                .default_value("default")
+                .required(false),
+        )
+        .get_matches();
 
     let credentials = app.value_of("credentials").unwrap_or("");
     let profile = Some(app.value_of("profile").unwrap_or(""));
 
     let sts = StsClient::new(Region::default());
 
-    let req = GetSessionTokenRequest { ..Default::default() };
+    let req = GetSessionTokenRequest {
+        ..Default::default()
+    };
     let rsp = sts.get_session_token(req).sync()?;
 
     if let Some(cred) = rsp.credentials {
         let mut conf = Ini::load_from_file(credentials)?;
         conf.set_to(profile, "aws_access_key_id".to_owned(), cred.access_key_id);
-        conf.set_to(profile, "aws_secret_access_key".to_owned(), cred.secret_access_key);
+        conf.set_to(
+            profile,
+            "aws_secret_access_key".to_owned(),
+            cred.secret_access_key,
+        );
         conf.set_to(profile, "aws_session_token".to_owned(), cred.session_token);
         conf.write_to_file(credentials)?;
         println!("session token expires: {}", cred.expiration);
