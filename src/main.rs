@@ -1,105 +1,57 @@
-extern crate clap;
-extern crate rusoto_core;
-extern crate rusoto_sts;
-#[macro_use]
-extern crate quick_error;
-extern crate ini;
-
-use clap::{App, AppSettings, Arg};
+use aws_config::meta::region::RegionProviderChain;
+use aws_sdk_sts::Client;
+use clap::Parser;
 use ini::Ini;
-use rusoto_core::{region::Region, CredentialsError};
-use rusoto_sts::{GetSessionTokenError, GetSessionTokenRequest, Sts, StsClient};
-use std::str;
+use std::path::PathBuf;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        CredentialsError(err: CredentialsError) {
-            from()
-            description(err.description())
-            display("credentials error: {}", err)
-            cause(err)
-        }
-        GetSessionTokenError(err: GetSessionTokenError) {
-            from()
-            description(err.description())
-            display("STS Error: {}", err)
-            cause(err)
-        }
-        IniError(err: ::ini::ini::Error) {
-            from()
-            description(err.description())
-            display("Config Error: {}", err)
-            cause(err)
-        }
-        IOError(err: ::std::io::Error) {
-            from()
-            description(err.description())
-            display("I/O Error: {}", err)
-            cause(err)
-        }
-    }
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Options {
+    #[clap(index = 1, required = true, help = "AWS credentials file")]
+    credentials: PathBuf,
+
+    #[clap(index = 2, required = true, help = "AWS profile to update")]
+    profile: String,
 }
 
-type Result<T> = ::std::result::Result<T, Error>;
+#[tokio::main]
+async fn main() {
+    let opts = Options::parse();
 
-fn main() -> Result<()> {
-    let app = App::new(env!("CARGO_PKG_NAME"))
-        .version(env!("CARGO_PKG_VERSION"))
-        .author("Ferruccio Barletta")
-        .about(env!("CARGO_PKG_DESCRIPTION"))
-        .setting(AppSettings::ColoredHelp)
-        .setting(AppSettings::UnifiedHelpMessage)
-        .arg(
-            Arg::with_name("credentials")
-                .value_name("CREDENTIALS")
-                .help("AWS credentials file")
-                .index(1)
-                .required(true),
-        )
-        .arg(
-            Arg::with_name("profile")
-                .value_name("PROFILE")
-                .help("AWS profile to update")
-                .index(2)
-                .required(true),
-        )
-        .get_matches();
+    let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
+    let config = aws_config::from_env().region(region_provider).load().await;
+    let client = Client::new(&config);
 
-    let credentials = app.value_of("credentials").unwrap_or("");
-    let profile = Some(app.value_of("profile").unwrap_or(""));
-    if profile.unwrap() == "default" {
-        println!("cannot set default profile");
-        return Ok(());
-    }
-
-    let sts = StsClient::new(Region::default());
-
-    let req = GetSessionTokenRequest {
-        ..Default::default()
-    };
-    match sts.get_session_token(req).sync() {
-        Err(err) => match err {
-            GetSessionTokenError::Unknown(unknown) => {
-                println!("unknown error: {}", str::from_utf8(&unknown.body).unwrap());
-            }
-            _ => println!("{:?}", err),
-        },
-        Ok(rsp) => {
-            if let Some(cred) = rsp.credentials {
-                let mut conf = Ini::load_from_file(credentials)?;
-                conf.set_to(profile, "aws_access_key_id".to_owned(), cred.access_key_id);
+    match client.get_session_token().send().await {
+        Ok(response) => {
+            if let Some(credentials) = response.credentials {
+                let mut conf = Ini::load_from_file(&opts.credentials)
+                    .expect("failed to open credentials file");
                 conf.set_to(
-                    profile,
-                    "aws_secret_access_key".to_owned(),
-                    cred.secret_access_key,
+                    Some(&opts.profile),
+                    String::from("aws_access_key_id"),
+                    credentials
+                        .access_key_id
+                        .unwrap_or(String::from("no aws access key id")),
                 );
-                conf.set_to(profile, "aws_session_token".to_owned(), cred.session_token);
-                conf.write_to_file(credentials)?;
-                println!("session token expires: {}", cred.expiration);
+                conf.set_to(
+                    Some(&opts.profile),
+                    String::from("aws_secret_access_key"),
+                    credentials
+                        .secret_access_key
+                        .unwrap_or(String::from("no aws secret access key")),
+                );
+                conf.set_to(
+                    Some(&opts.profile),
+                    String::from("aws_session_token"),
+                    credentials
+                        .session_token
+                        .unwrap_or(String::from("no aws session token")),
+                );
+                conf.write_to_file(&opts.credentials)
+                    .expect("failed to update credentials file");
             }
         }
+        Err(err) => println!("{err}"),
     }
-
-    Ok(())
 }
