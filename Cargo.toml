@@ -1,6 +1,6 @@
 [package]
 name = "fast"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Ferruccio Barletta <ferruccio.barletta@gmail.com>"]
 description = "Fetch AWS Session Token"
 edition = "2021"
